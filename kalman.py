@@ -2,62 +2,111 @@ import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 
-#setup initial parameters
-n_iter = 50
-sz = (n_iter,)	#Size of array
-x0 = -0.5	#Initial position value
-v = 0.05	#Velocity
-R = 0.1 # Estimate of measurement variance
+# Kalman Filter
+# -------------------------
+# k-1 = Time of current state
+# k   = Time of next state
+# x   = State [position, velocity]
 
-Q = 1e-6 #Process variance
+# Prediction parameters
+# ---------------------
+# P = Covariance matrix (Sigma)
+# F = Prediction matrix
+# x_hat = Prediction
+# u = Control vector
+# B = Control matrix
+# Q = Noise and external disturbance uncertanty
 
-#Create the arrays
-xhat = np.zeros(sz)	# a posteri estimate of x
-P = np.zeros(sz)	# a posteri error estimate
-xhatminus = np.zeros(sz)	# a priori estimate of x
-Pminus = np.zeros(sz)	# a priori error estimate
-K = np.zeros(sz)	# gain or blending factor
-z = np.zeros(sz)	# measurement array
-x = np.zeros(sz)	# array of position values
+# Update parameters
+# ---------------------
+# H = Sensor model matrix
+# mu_exp = Expected mean measurement
+# sig_exp = Expected covariance in measurement
+# R = Sensor noise covariance
+# z = Sensor measurement mean
+# K = Kalman gain
 
 
+# Initial conditions
+# ---------------------
+k = 0           	# Time
+n = 50			# Number of iternations
+dt = 0.1		# Delta time between updates
 
-# initial guess
-xhat[0] = 0.0
-P[0] = 1.0
+# X_0
+p_0 = 0.5		# Initial position
+v_0 = 0.05		# Initial velocity
+x = [p_0, v_0]
 
-x[0] = x0
+P = np.zeros( (n,2,2) )	# Covariance matrix 
 
-for k in range(1, n_iter):
-	# move the robot
-	x[k] = x[k-1] + v
+F = [[1.0, dt],		# Prediction matrix
+     [0.0, 1.0]]
 
-	# generate a measurement about x
-	z[k] = np.random.randn()*R + x[k]
-	# time update
-	xhatminus[k] = xhat[k-1]
-	Pminus[k] = P[k-1] + Q
+u = 9.81		# Control vector
+B = [dt**2, dt]		# Control matrix
 
-	# measurement update
-	K[k] = Pminus[k]/( Pminus[k]+R )
-	xhat[k] = xhatminus[k] + K[k]*(z[k]-xhatminus[k])
-	P[k] = (1-K[k])*Pminus[k]
+Q = [1e-6, 1e-6]	# Noise/External disturbance uncertanty
+
+H = [[1.0, 0.0],	# Sensor Model
+     [0.0, 1.0]] 
+
+mu_exp = np.zeros( (n,2) )	# Expected mean measurement
+sig_exp = np.zeros( (n,2,2) ) 	# Expected covarience in measurement
+
+R = np.zeros( (n,2,2) )		# Sensor noise
+z = np.zeros( (n,2) )		# Sensor measurement noise
+
+K = np.zeros( (n,2,2) )       # Kalman gain
+
+x = np.zeros( (n,2) )
+
+for k in range(1, n):
+	
+	print ("Filter Step: %d" % k)
+	
+	# Prediction
+	x[k] = np.dot(F, x[k-1]) + np.dot(B,u)	
+	print "xhat: ",
+	print x[k]
+	
+	P[k] = np.dot(np.dot(F,P[k-1]),np.transpose(F)) + Q
+	print "Phat: ",
+	print P[k]
+
+	# Update
+	z[k] = np.dot(H, x[k]) 			 # Ideal Measurement
+	z[k] = z[k] + 10*(np.random.rand(1)-0.5) # Added noise	
+	print "Sensor mean: ",
+	print z[k]
+
+	R[k] = np.dot(np.dot(H, P[k]), np.transpose(H))	# Ideal Measurement
+	R[k] = R[k] + 10*(np.random.rand(1)-0.5)	# Added noise 
+	print "Sensor Cov: ",
+	print R[k]	
+		
+	K[k] = np.dot(P[k], np.transpose(H))/( np.dot(np.dot(H, P[k]), np.transpose(H)) + R[k] )
+	print "Kalman Gain: ",
+	print K[k]
+
+	x[k] = x[k] + np.dot(K[k], (z[k] - np.dot(H, x[k])))
+	print "x: ",
+	print x[k]
+
+	P[k] = P[k] - np.dot(K[k], np.dot(H, P[k]))
+	print "P: ",
+	print P[k]
+
+	print " "
 
 plt.figure()
-plt.plot(z, 'k+', label='noisy measurements')
-plt.plot(xhat, 'b-', label='a posteri estimate')
-plt.plot(x, '^', label='actual position')
-#plt.axhline(x, color='g', label = 'truth value')
+plt.plot(z[:,0], 'k+', label='Measurement Position')
+plt.plot(z[:,1], 'k+', label='Measurement Velocity')
+plt.plot(x[:,0], '-', label='Kalman Position')
+plt.plot(x[:,1], '-', label='Kalman Velocity')
 plt.legend()
-plt.title('Estimate vs. iteration step', fontweight='bold')
-plt.xlabel('Iteration')
-plt.ylabel('Voltage')
-
-plt.figure()
-valid_iter = range(1,n_iter)
-plt.plot(valid_iter, Pminus[valid_iter], label = 'a priori error estimate')
-plt.title('Estimated $\it\mathbf{a \ priori}}$ error vs. iteration step', fontweight='bold')
-plt.xlabel('Iteration')
-plt.ylabel('$(Voltage)^2$')
-plt.setp(plt.gca(), 'ylim', [0, 0.01])
+plt.title('State Estimation vs Time', fontweight='bold')
+plt.xlabel('Time')
+plt.ylabel('State')
 plt.show()
+
