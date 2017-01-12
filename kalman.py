@@ -34,9 +34,10 @@ n = 50			# Number of iternations
 dt = 0.1		# Delta time between updates
 
 # X_0
-p_0 = 0.5		# Initial position
-v_0 = 0.05		# Initial velocity
-x = [p_0, v_0]
+p_0 = 0.0		# Initial position
+v_0 = 1.0		# Initial velocity
+x = np.zeros( (n,2) )	# Initial State
+x[0,:] = [p_0, v_0]
 
 P = np.zeros( (n,2,2) )	# Covariance matrix 
 
@@ -46,26 +47,23 @@ F = [[1.0, dt],		# Prediction matrix
 u = 9.81		# Control vector
 B = [dt**2, dt]		# Control matrix
 
-Q = [1e-6, 1e-6]	# Noise/External disturbance uncertanty
+Q = [[1e-5, 1e-5],	# Noise/External disturbance uncertanty
+     [1e-5, 1e-5]]
 
 H = [[1.0, 0.0],	# Sensor Model
      [0.0, 1.0]] 
 
-mu_exp = np.zeros( (n,2) )	# Expected mean measurement
-sig_exp = np.zeros( (n,2,2) ) 	# Expected covarience in measurement
+R = np.zeros( (n,2,2) )	# Sensor noise
+z = np.zeros( (n,2) )	# Sensor measurement noise
 
-R = np.zeros( (n,2,2) )		# Sensor noise
-z = np.zeros( (n,2) )		# Sensor measurement noise
-
-K = np.zeros( (n,2,2) )       # Kalman gain
-
-x = np.zeros( (n,2) )
+K = np.ones( (n,2,2) )  # Kalman gain
 
 for k in range(1, n):
 	
 	print ("Filter Step: %d" % k)
 	
-	# Prediction
+	# Predict
+	# ------------------------------------------
 	x[k] = np.dot(F, x[k-1]) + np.dot(B,u)	
 	print "xhat: ",
 	print x[k]
@@ -75,13 +73,14 @@ for k in range(1, n):
 	print P[k]
 
 	# Update
+	# ------------------------------------------
 	z[k] = np.dot(H, x[k]) 			 # Ideal Measurement
-	z[k] = z[k] + 10*(np.random.rand(1)-0.5) # Added noise	
+	z[k] = z[k] + 5*(np.random.rand(1)-0.5)  # Added noise	
 	print "Sensor mean: ",
 	print z[k]
 
-	R[k] = np.dot(np.dot(H, P[k]), np.transpose(H))	# Ideal Measurement
-	R[k] = R[k] + 10*(np.random.rand(1)-0.5)	# Added noise 
+	R[k] = [[0.1**2, 0.1**2],		 # Measurement Noise
+		[0.1**2, 0.1**2]]
 	print "Sensor Cov: ",
 	print R[k]	
 		
