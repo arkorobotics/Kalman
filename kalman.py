@@ -33,7 +33,8 @@ k = 0           	# Time
 n = 50			# Number of iternations
 dt = 0.1		# Delta time between updates
 
-# X_0
+# State Variables
+# ---------------------
 p_0 = 0.0		# Initial position
 v_0 = 1.0		# Initial velocity
 x = np.zeros( (n,2) )	# Initial State
@@ -41,15 +42,23 @@ x[0,:] = [p_0, v_0]
 
 P = np.zeros( (n,2,2) )	# Covariance matrix 
 
+# Physical Model
+# ---------------------
 F = [[1.0, dt],		# Prediction matrix
      [0.0, 1.0]]
 
+# Control Variables
+# ---------------------
 u = 9.81		# Control vector
 B = [dt**2, dt]		# Control matrix
 
+# External Disturbance Variables
+# ---------------------
 Q = [[1e-5, 1e-5],	# Noise/External disturbance uncertanty
      [1e-5, 1e-5]]
 
+# Measurement Variables
+# ---------------------
 H = [[1.0, 0.0],	# Sensor Model
      [0.0, 1.0]] 
 
@@ -57,6 +66,7 @@ R = np.zeros( (n,2,2) )	# Sensor noise
 z = np.zeros( (n,2) )	# Sensor measurement noise
 
 K = np.ones( (n,2,2) )  # Kalman gain
+
 
 for k in range(1, n):
 	
@@ -98,6 +108,7 @@ for k in range(1, n):
 
 	print " "
 
+# Plot Results
 plt.figure()
 plt.plot(z[:,0], 'k+', label='Measurement Position')
 plt.plot(z[:,1], 'k+', label='Measurement Velocity')
